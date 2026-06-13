@@ -36,7 +36,21 @@ def log(msg):
 
 # ─── Config ───────────────────────────────────────────────────────────────────
 
-CREDENTIALS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "credentials.json")
+import json, tempfile as _tf
+_cj = os.environ.get("GOOGLE_CREDENTIALS_JSON")
+if _cj:
+    _t = _tf.NamedTemporaryFile(delete=False, suffix=".json", mode="w")
+    _t.write(_cj); _t.flush()
+    CREDENTIALS_FILE = _t.name
+else:
+    import json, tempfile as _tf
+_cj = os.environ.get("GOOGLE_CREDENTIALS_JSON")
+if _cj:
+    _t = _tf.NamedTemporaryFile(delete=False, suffix=".json", mode="w")
+    _t.write(_cj); _t.flush()
+    CREDENTIALS_FILE = _t.name
+else:
+    CREDENTIALS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "credentials.json")
 ADMIN_URL        = "https://admin.vistarooms.com"
 USERNAME         = "sujal.uttekar@stayvista.com"
 PASSWORD         = "Sujal@2025"
