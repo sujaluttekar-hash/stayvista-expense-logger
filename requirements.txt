@@ -1,0 +1,8 @@
+flask==3.0.3
+flask-socketio==5.3.6
+selenium==4.21.0
+gspread==6.1.2
+google-auth==2.29.0
+google-api-python-client==2.129.0
+eventlet==0.36.1
+chromedriver-autoinstall==0.0.7

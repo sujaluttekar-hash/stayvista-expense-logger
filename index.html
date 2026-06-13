@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StayVista · Expense Logger</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.1/socket.io.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400;500&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #0c0c0e;
+  --surface:   #131316;
+  --surface2:  #1a1a1f;
+  --border:    #232328;
+  --border2:   #2e2e36;
+  --text:      #f0f0f2;
+  --text-sub:  #5a5a6a;
+  --text-muted:#3a3a48;
+  --green:     #22c55e;
+  --green-dim: rgba(34,197,94,0.10);
+  --blue:      #60a5fa;
+  --blue-dim:  rgba(96,165,250,0.10);
+  --amber:     #f59e0b;
+  --amber-dim: rgba(245,158,11,0.10);
+  --red:       #f87171;
+  --red-dim:   rgba(248,113,113,0.10);
+  --dim:       #4a4a5a;
+  --radius:    8px;
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── LAYOUT ───────────────────────────────── */
+.shell {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ── SIDEBAR ──────────────────────────────── */
+.sidebar {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 28px 20px 24px;
+  overflow-y: auto;
+}
+
+/* Wordmark */
+.wordmark {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+.wordmark-icon {
+  width: 32px; height: 32px;
+  background: var(--green-dim);
+  border: 1px solid rgba(34,197,94,0.2);
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; flex-shrink: 0;
+}
+.wordmark-text { line-height: 1.2; }
+.wordmark-brand {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-sub);
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+}
+.wordmark-product {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* Nav label */
+.nav-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+/* Script cards */
+.scripts { display: flex; flex-direction: column; gap: 4px; margin-bottom: 28px; }
+
+.script-card {
+  position: relative;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+  user-select: none;
+}
+.script-card:hover { background: var(--surface2); border-color: var(--border); }
+
+.script-card.sel-inhouse  { background: var(--green-dim); border-color: rgba(34,197,94,0.25); }
+.script-card.sel-foodtown { background: var(--blue-dim);  border-color: rgba(96,165,250,0.25); }
+.script-card.sel-clover   { background: var(--amber-dim); border-color: rgba(245,158,11,0.25); }
+
+.card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
+.card-dot {
+  width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+  background: var(--border2);
+  transition: background 0.12s;
+}
+.sel-inhouse  .card-dot { background: var(--green); }
+.sel-foodtown .card-dot { background: var(--blue); }
+.sel-clover   .card-dot { background: var(--amber); }
+
+.card-name { font-size: 13px; font-weight: 500; color: var(--text); }
+.card-meta { font-size: 11px; color: var(--text-sub); padding-left: 15px; }
+
+/* Action buttons */
+.actions { display: flex; flex-direction: column; gap: 6px; margin-bottom: 24px; }
+
+.btn-run {
+  padding: 11px 14px;
+  background: var(--green);
+  color: #000;
+  border: none;
+  border-radius: var(--radius);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: opacity 0.12s;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+}
+.btn-run:hover:not(:disabled) { opacity: 0.88; }
+.btn-run:disabled { background: var(--border2); color: var(--text-sub); cursor: not-allowed; }
+
+.btn-stop {
+  padding: 10px 14px;
+  background: transparent;
+  color: var(--text-sub);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.12s, color 0.12s;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+}
+.btn-stop:hover:not(:disabled) { border-color: var(--red); color: var(--red); }
+.btn-stop:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* Status pill */
+.status-row {
+  margin-top: auto;
+  padding: 10px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: flex; align-items: center; gap: 8px;
+}
+.status-dot {
+  width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+  background: var(--border2);
+  transition: background 0.3s;
+}
+.status-dot.live {
+  background: var(--green);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.25; }
+}
+.status-text { font-size: 11px; color: var(--text-sub); }
+
+/* ── MAIN PANEL ───────────────────────────── */
+.main { display: flex; flex-direction: column; overflow: hidden; }
+
+/* Topbar */
+.topbar {
+  padding: 20px 28px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0;
+}
+.topbar-left { display: flex; align-items: center; gap: 12px; }
+.topbar-title { font-size: 14px; font-weight: 600; color: var(--text); }
+.topbar-badge {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-sub);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+.btn-clear {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-sub);
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  padding: 5px 12px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: border-color 0.12s, color 0.12s;
+}
+.btn-clear:hover { border-color: var(--border2); color: var(--text); }
+
+/* Stats bar */
+.stats-bar {
+  padding: 12px 28px;
+  border-bottom: 1px solid var(--border);
+  display: flex; gap: 24px;
+  flex-shrink: 0;
+  background: var(--surface);
+}
+.stat { display: flex; align-items: center; gap: 6px; }
+.stat-dot { width: 5px; height: 5px; border-radius: 50%; }
+.stat-count { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500; }
+.stat-label { font-size: 11px; color: var(--text-sub); }
+.stat.success .stat-dot { background: var(--green); }
+.stat.success .stat-count { color: var(--green); }
+.stat.error   .stat-dot { background: var(--red); }
+.stat.error   .stat-count { color: var(--red); }
+.stat.warning .stat-dot { background: var(--amber); }
+.stat.warning .stat-count { color: var(--amber); }
+.stat.total   .stat-dot { background: var(--text-sub); }
+.stat.total   .stat-count { color: var(--text); }
+
+/* Console */
+.console-wrap { flex: 1; padding: 0 28px 28px; display: flex; flex-direction: column; overflow: hidden; }
+.console {
+  flex: 1;
+  margin-top: 0;
+  background: #080809;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  overflow-y: auto;
+  font-family: 'JetBrains Mono', 'Fira Mono', monospace;
+  font-size: 12px;
+  line-height: 1.75;
+}
+.console::-webkit-scrollbar { width: 4px; }
+.console::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+.log-line { display: block; white-space: pre-wrap; word-break: break-all; }
+.log-success { color: var(--green); }
+.log-error   { color: var(--red); }
+.log-warning { color: var(--amber); }
+.log-info    { color: var(--blue); }
+.log-dim     { color: var(--dim); }
+.log-line    { animation: fadein 0.15s ease; }
+@keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
+
+/* Divider logs */
+.log-divider { color: var(--text-sub); border-top: 1px solid var(--border); padding-top: 12px; margin-top: 4px; }
+
+.empty-state {
+  height: 100%;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  text-align: center;
+}
+.empty-state-icon { font-size: 28px; margin-bottom: 4px; opacity: 0.4; }
+.empty-state-line { color: var(--text-sub); }
+.empty-state-hint { color: var(--text-muted); font-size: 11px; }
+
+/* Spacing above console */
+.console-wrap { padding-top: 20px; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- ── SIDEBAR ── -->
+  <aside class="sidebar">
+    <div class="wordmark">
+      <div class="wordmark-icon">🏡</div>
+      <div class="wordmark-text">
+        <div class="wordmark-brand">StayVista</div>
+        <div class="wordmark-product">Expense Logger</div>
+      </div>
+    </div>
+
+    <div class="nav-label" style="margin-bottom:10px;">Script</div>
+    <div class="scripts">
+
+      <div class="script-card sel-inhouse" id="card-inhouse" onclick="selectScript('inhouse')">
+        <div class="card-header">
+          <div class="card-dot"></div>
+          <div class="card-name">Inhouse</div>
+        </div>
+        <div class="card-meta">Vista Logs · 0% GST</div>
+      </div>
+
+      <div class="script-card" id="card-foodtown" onclick="selectScript('foodtown')">
+        <div class="card-header">
+          <div class="card-dot"></div>
+          <div class="card-name">Foodtown</div>
+        </div>
+        <div class="card-meta">Vista Export · 18% GST</div>
+      </div>
+
+      <div class="script-card" id="card-clover" onclick="selectScript('clover')">
+        <div class="card-header">
+          <div class="card-dot"></div>
+          <div class="card-name">Clover</div>
+        </div>
+        <div class="card-meta">Vista Export · 18% GST · 2 folders</div>
+      </div>
+
+    </div>
+
+    <div class="actions">
+      <button class="btn-run" id="btn-run" onclick="runScript()">
+        <span>▶</span> Run Script
+      </button>
+      <button class="btn-stop" id="btn-stop" onclick="stopScript()" disabled>
+        <span>■</span> Stop
+      </button>
+    </div>
+
+    <div class="status-row">
+      <div class="status-dot" id="status-dot"></div>
+      <span class="status-text" id="status-text">Ready</span>
+    </div>
+  </aside>
+
+  <!-- ── MAIN ── -->
+  <div class="main">
+
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="topbar-title">Live Output</div>
+        <div class="topbar-badge" id="script-badge">Inhouse</div>
+      </div>
+      <button class="btn-clear" onclick="clearLog()">Clear</button>
+    </div>
+
+    <div class="stats-bar">
+      <div class="stat total">
+        <div class="stat-dot"></div>
+        <div class="stat-count" id="count-total">0</div>
+        <div class="stat-label">lines</div>
+      </div>
+      <div class="stat success">
+        <div class="stat-dot"></div>
+        <div class="stat-count" id="count-success">0</div>
+        <div class="stat-label">success</div>
+      </div>
+      <div class="stat error">
+        <div class="stat-dot"></div>
+        <div class="stat-count" id="count-error">0</div>
+        <div class="stat-label">errors</div>
+      </div>
+      <div class="stat warning">
+        <div class="stat-dot"></div>
+        <div class="stat-count" id="count-warning">0</div>
+        <div class="stat-label">warnings</div>
+      </div>
+    </div>
+
+    <div class="console-wrap">
+      <div class="console" id="console">
+        <div class="empty-state" id="empty-state">
+          <div class="empty-state-icon">⬡</div>
+          <div class="empty-state-line">No output yet</div>
+          <div class="empty-state-hint">Select a script on the left and press Run</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const socket = io();
+
+  let selected = 'inhouse';
+  let running  = false;
+  let counts   = { total: 0, success: 0, error: 0, warning: 0 };
+
+  const LABELS = { inhouse: 'Inhouse', foodtown: 'Foodtown', clover: 'Clover' };
+  const SEL_CLASSES = { inhouse: 'sel-inhouse', foodtown: 'sel-foodtown', clover: 'sel-clover' };
+
+  function selectScript(key) {
+    if (running) return;
+    selected = key;
+    ['inhouse', 'foodtown', 'clover'].forEach(k => {
+      const card = document.getElementById('card-' + k);
+      card.className = 'script-card' + (k === key ? ' ' + SEL_CLASSES[k] : '');
+    });
+    document.getElementById('script-badge').textContent = LABELS[key];
+  }
+
+  function runScript()  { socket.emit('run_script', { script: selected }); }
+  function stopScript() { socket.emit('stop_script'); }
+
+  function clearLog() {
+    document.getElementById('console').innerHTML =
+      `<div class="empty-state" id="empty-state">
+        <div class="empty-state-icon">⬡</div>
+        <div class="empty-state-line">Console cleared</div>
+        <div class="empty-state-hint">Press Run to start a new session</div>
+      </div>`;
+    counts = { total: 0, success: 0, error: 0, warning: 0 };
+    updateCounts();
+  }
+
+  function updateCounts() {
+    ['total', 'success', 'error', 'warning'].forEach(k => {
+      document.getElementById('count-' + k).textContent = counts[k];
+    });
+  }
+
+  function appendLog(text, type) {
+    const c = document.getElementById('console');
+    const empty = document.getElementById('empty-state');
+    if (empty) empty.remove();
+
+    const span = document.createElement('span');
+
+    // Divider lines (===...===)
+    if (text.includes('=====')) {
+      span.className = 'log-line log-divider';
+    } else {
+      span.className = 'log-line log-' + (type || 'dim');
+    }
+
+    span.textContent = text;
+    c.appendChild(span);
+    c.appendChild(document.createTextNode('\n'));
+    c.scrollTop = c.scrollHeight;
+
+    // Update counters
+    counts.total++;
+    if (type === 'success') counts.success++;
+    if (type === 'error')   counts.error++;
+    if (type === 'warning') counts.warning++;
+    updateCounts();
+  }
+
+  socket.on('log',    data => appendLog(data.text, data.type));
+
+  socket.on('status', data => {
+    running = data.running;
+
+    document.getElementById('btn-run').disabled  = running;
+    document.getElementById('btn-stop').disabled = !running;
+
+    const dot = document.getElementById('status-dot');
+    dot.className = 'status-dot' + (running ? ' live' : '');
+
+    document.getElementById('status-text').textContent = running ? 'Running...' : 'Ready';
+
+    ['inhouse', 'foodtown', 'clover'].forEach(k => {
+      document.getElementById('card-' + k).style.pointerEvents = running ? 'none' : 'auto';
+    });
+  });
+</script>
+</body>
+</html>

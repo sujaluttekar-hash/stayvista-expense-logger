@@ -1,0 +1,24 @@
+# Service account key — NEVER commit this
+credentials.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+
+# Temp bill downloads
+/tmp/sv_bills/
+
+# Error screenshots
+error_*.png
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
