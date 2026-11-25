@@ -43,17 +43,10 @@ if _cj:
     _t.write(_cj); _t.flush()
     CREDENTIALS_FILE = _t.name
 else:
-    import json, tempfile as _tf
-_cj = os.environ.get("GOOGLE_CREDENTIALS_JSON")
-if _cj:
-    _t = _tf.NamedTemporaryFile(delete=False, suffix=".json", mode="w")
-    _t.write(_cj); _t.flush()
-    CREDENTIALS_FILE = _t.name
-else:
     CREDENTIALS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "credentials.json")
-ADMIN_URL        = "https://admin.vistarooms.com"
-USERNAME         = "sujal.uttekar@stayvista.com"
-PASSWORD         = "Sujal@2025"
+ADMIN_URL = "https://admin.vistarooms.com"
+USERNAME = os.environ.get("ADMIN_USERNAME", "")
+PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
 
 SCOPES = [
     "https://www.googleapis.com/auth/drive",
@@ -203,6 +196,8 @@ def setup_driver(headless=True):
 # ─── Login ────────────────────────────────────────────────────────────────────
 
 def login(driver):
+    if not USERNAME or not PASSWORD:
+        raise RuntimeError("Set ADMIN_USERNAME and ADMIN_PASSWORD environment variables before starting the app.")
     wait = WebDriverWait(driver, 20)
     log("🔐 Logging in...")
     driver.get(ADMIN_URL)
