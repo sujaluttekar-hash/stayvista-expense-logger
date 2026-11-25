@@ -11,7 +11,7 @@ from flask import Flask, render_template, jsonify
 from flask_socketio import SocketIO, emit
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = "sv-expense-logger-2026"
+app.config["SECRET_KEY"] = os.environ.get("FLASK_SECRET_KEY", os.urandom(32).hex())
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
