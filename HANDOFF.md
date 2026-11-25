@@ -158,6 +158,7 @@ Railway can't read your local file. Add it as an environment variable:
 
 1. In Railway → your project → **Variables** tab
 2. Add variable: `GOOGLE_CREDENTIALS_JSON` = (paste the entire contents of credentials.json)
+5. Add `ADMIN_USERNAME` and `ADMIN_PASSWORD` as separate Railway variables. Do not store the admin password in source code.
 3. In `core.py`, replace this line:
    ```python
    CREDENTIALS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "credentials.json")
