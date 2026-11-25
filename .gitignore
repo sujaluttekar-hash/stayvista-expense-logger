@@ -1,0 +1,23 @@
+# Secrets and credentials
+credentials.json
+*.service-account.json
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Runtime files
+*.log
+/tmp/sv_bills/
+error_*.png
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
