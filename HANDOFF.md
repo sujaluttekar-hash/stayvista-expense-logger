@@ -118,7 +118,7 @@ All Sheets and Drive folders must be shared with the service account email.
 |----------|--------------------------------|
 | URL      | https://admin.vistarooms.com   |
 | Email    | sujal.uttekar@stayvista.com    |
-| Password | Sujal@2025                     |
+| Password | Set securely via ADMIN_PASSWORD environment variable |
 
 ---
 
